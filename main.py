@@ -26,7 +26,7 @@ def update_now():
     </style>
 </head>
 <body>
-    <h1>AI Daily English Learning</h1>
+    <h1>AI Daily News Update - SUCCESS</h1>
     <div style="background:#f4f4f4; padding:20px; border-radius:10px;">
         <p>{content}</p>
         <button class="btn" onclick="document.getElementById('translation').style.display='block'">点击翻译</button>
