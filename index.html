@@ -1,21 +1,33 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AI Daily English</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily English Study | AI Editor</title>
     <style>
-        body { font-family: sans-serif; padding: 40px; line-height: 1.6; max-width: 800px; margin: auto; }
-        .btn { background: #2d6df6; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; border: none; }
-        #translation { display: none; margin-top: 20px; color: #666; }
+        body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #fcfcfc; line-height: 1.8; }
+        .card { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; }
+        .ai-text { font-size: 18px; white-space: pre-wrap; color: #333; margin-bottom: 25px; }
+        .btn { background: #2d6df6; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        #analysis { display: none; margin-top: 25px; padding-top: 20px; border-top: 2px dashed #eee; }
     </style>
 </head>
 <body>
-    <h1>AI Daily News Update - SUCCESS</h1>
-    <div style="background:#f4f4f4; padding:20px; border-radius:10px;">
-        <p>Today's latest news from China Daily.</p>
-        <button class="btn" onclick="document.getElementById('translation').style.display='block'">点击翻译</button>
-        <div id="translation">这是 AI 为您生成的翻译内容。</div>
+    <h1 style="text-align:center; color:#2d6df6;">IELTS Daily Learning Hub</h1>
+    <div class="card">
+        <h3>Today's Intensive Reading</h3>
+        <div class="ai-text">AI 暂时不可用，错误原因: 'candidates'</div>
+        <button class="btn" onclick="toggle()">显示/隐藏 详细分析与翻译</button>
+        <div id="analysis">
+            <p style="color: #888; font-size: 14px;">💡 AI 实时解析 (Powered by Gemini)</p>
+        </div>
     </div>
+    <script>
+        function toggle() {
+            var x = document.getElementById("analysis");
+            x.style.display = (x.style.display === "none" || x.style.display === "") ? "block" : "none";
+        }
+    </script>
 </body>
 </html>
