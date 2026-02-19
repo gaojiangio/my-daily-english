@@ -1,44 +1,88 @@
 import requests
+from bs4 import BeautifulSoup
 import os
 
+# 1. 调取你的 AI 钥匙
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-def update_now():
-    # 1. 抓取逻辑（这里简单演示，确保能跑通）
+def ask_ai(text):
+    # 调用 Gemini AI 进行改写和翻译
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+    prompt = (
+        f"请将以下新闻内容改写为一段雅思 8.0 水平的学习材料。要求：\n"
+        f"1. 一段约 120 词的精炼英文文章。\n"
+        f"2. 4个核心词组及其中文释义。\n"
+        f"3. 刚才那段英文文章的全文中英对照翻译。\n"
+        f"新闻原文：{text}"
+    )
+    data = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
-        res = requests.get("https://global.chinadaily.com.cn/world")
-        # 这里你可以继续用之前的 BeautifulSoup 抓取逻辑
-        content = "Today's latest news from China Daily." 
-    except:
-        content = "News content update."
+        response = requests.post(url, json=data)
+        # 获取 AI 的回复文本
+        return response.json()['candidates'][0]['content']['parts'][0]['text']
+    except Exception as e:
+        return f"AI 暂时不可用，错误原因: {e}"
 
-    # 2. 准备新的 HTML（带翻译按钮）
-    html_content = f"""
+def get_real_news():
+    # 真正去抓取 China Daily 的正文
+    headers = {'User-Agent': 'Mozilla/5.0'}
+    res = requests.get("https://global.chinadaily.com.cn/world", headers=headers)
+    soup = BeautifulSoup(res.text, 'html.parser')
+    # 找到第一篇文章链接
+    link = "https:" + soup.select_one('.mb10.tw3_01_2 h4 a')['href']
+    # 抓取文章内容
+    art_res = requests.get(link, headers=headers)
+    art_soup = BeautifulSoup(art_res.text, 'html.parser')
+    paragraphs = art_soup.select('#Content p')
+    return " ".join([p.text.strip() for p in paragraphs[:3]])
+
+def update_full_html(ai_result):
+    # 构建包含【翻译按钮】的完整网页
+    html_template = f"""
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>AI Daily English</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily English Study | AI Editor</title>
     <style>
-        body {{ font-family: sans-serif; padding: 40px; line-height: 1.6; max-width: 800px; margin: auto; }}
-        .btn {{ background: #2d6df6; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; border: none; }}
-        #translation {{ display: none; margin-top: 20px; color: #666; }}
+        body {{ font-family: -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #fcfcfc; line-height: 1.8; }}
+        .card {{ background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; }}
+        .ai-text {{ font-size: 18px; white-space: pre-wrap; color: #333; margin-bottom: 25px; }}
+        .btn {{ background: #2d6df6; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; }}
+        #analysis {{ display: none; margin-top: 25px; padding-top: 20px; border-top: 2px dashed #eee; }}
     </style>
 </head>
 <body>
-    <h1>AI Daily News Update - SUCCESS</h1>
-    <div style="background:#f4f4f4; padding:20px; border-radius:10px;">
-        <p>{content}</p>
-        <button class="btn" onclick="document.getElementById('translation').style.display='block'">点击翻译</button>
-        <div id="translation">这是 AI 为您生成的翻译内容。</div>
+    <h1 style="text-align:center; color:#2d6df6;">IELTS Daily Learning Hub</h1>
+    <div class="card">
+        <h3>Today's Intensive Reading</h3>
+        <div class="ai-text">{ai_result}</div>
+        <button class="btn" onclick="toggle()">显示/隐藏 详细分析与翻译</button>
+        <div id="analysis">
+            <p style="color: #888; font-size: 14px;">💡 AI 实时解析 (Powered by Gemini)</p>
+        </div>
     </div>
+    <script>
+        function toggle() {{
+            var x = document.getElementById("analysis");
+            x.style.display = (x.style.display === "none" || x.style.display === "") ? "block" : "none";
+        }}
+    </script>
 </body>
 </html>
 """
-    # 3. 强制写入 index.html
     with open('index.html', 'w', encoding='utf-8') as f:
-        f.write(html_content)
-    print("文件 index.html 写入完成！")
+        f.write(html_template)
 
 if __name__ == "__main__":
-    update_now()
+    if API_KEY:
+        # 第一步：抓取真实内容
+        news_data = get_real_news()
+        # 第二步：获取 AI 处理结果
+        ai_msg = ask_ai(news_data)
+        # 第三步：生成最终网页
+        update_full_html(ai_msg)
+        print("全功能 AI 网页已生成！")
+    else:
+        print("未检测到 API Key，请检查配置。")
