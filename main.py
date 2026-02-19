@@ -6,24 +6,29 @@ import os
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 def ask_ai(text):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
-    prompt = (
-        f"请将以下新闻内容改写为一段适合雅思 8.0 水平的学习材料。要求包含：\n"
-        f"1. 一段约 120 词的精简英文文章。\n"
-        f"2. 4个核心词组及其中文释义。\n"
-        f"3. 刚才那段英文文章的全文中英对照翻译。\n"
-        f"新闻原文内容：{text}"
-    )
-    data = {"contents": [{"parts": [{"text": prompt}]}]}
+    # 【核心修正】：将 v1beta 改为 v1，这是最稳定的版本
+    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+    
+    headers = {'Content-Type': 'application/json'}
+    payload = {
+        "contents": [{
+            "parts": [{
+                "text": f"请将以下新闻内容改写为一段适合雅思 8.0 水平的学习材料。要求包含：1. 一段约 120 词的精简英文文章。2. 4个核心词组及其中文释义。3. 刚才那段英文文章的全文中英对照翻译。新闻原文内容：{text}"
+            }]
+        }]
+    }
+    
     try:
-        response = requests.post(url, json=data)
+        response = requests.post(url, headers=headers, json=payload)
         result = response.json()
-        if 'candidates' in result:
+        
+        if 'candidates' in result and len(result['candidates']) > 0:
             return result['candidates'][0]['content']['parts'][0]['text']
         else:
-            return f"AI 拒绝了请求。详细回复内容：{result}"
+            # 如果还是不行，把错误打印得更清楚一点
+            return f"AI 响应异常。完整信息：{result}"
     except Exception as e:
-        return f"网络连接出错: {e}"
+        return f"网络请求失败: {e}"
 
 def get_real_news():
     headers = {'User-Agent': 'Mozilla/5.0'}
@@ -39,7 +44,7 @@ def get_real_news():
         return "Unable to fetch news content today."
 
 def update_full_html(ai_result):
-    # 构造 HTML 内容（注意：这里我避开了可能导致报错的 f-string 嵌套）
+    # 构造 HTML（直接拼接字符串，避免 f-string 嵌套报错）
     html_start = """
 <!DOCTYPE html>
 <html lang="en">
@@ -76,9 +81,7 @@ def update_full_html(ai_result):
 </body>
 </html>
 """
-    # 直接通过加号拼接字符串，绝对不会报错
     final_html = html_start + ai_result + html_end
-    
     with open('index.html', 'w', encoding='utf-8') as f:
         f.write(final_html)
 
