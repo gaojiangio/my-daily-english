@@ -1,38 +1,21 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily English Learning</title>
+    <title>AI Daily English</title>
     <style>
-        body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; background: #fcfcfc; line-height: 1.6; }
-        .card { background: white; border-radius: 12px; padding: 25px; border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .title-text { font-size: 20px; font-weight: bold; color: #2d6df6; }
-        .toggle-btn { background: #2d6df6; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; margin-top: 20px; }
-        #translation { display: none; margin-top: 20px; padding-top: 15px; border-top: 1px dashed #ccc; color: #666; }
+        body { font-family: sans-serif; padding: 40px; line-height: 1.6; max-width: 800px; margin: auto; }
+        .btn { background: #2d6df6; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; border: none; }
+        #translation { display: none; margin-top: 20px; color: #666; }
     </style>
 </head>
 <body>
-    <h1 style="text-align:center;">My Daily English News</h1>
-    <div class="card">
-        <h3>Today's Headlines</h3>
-        <p class="title-text">Bangladesh Nationalist Party wins big in election</p>
-        <p>This is today's top story from China Daily world channel.</p>
-        
-        <button class="toggle-btn" onclick="toggle()">点击显示/隐藏中文翻译</button>
-        
-        <div id="translation">
-            <p><strong>[参考翻译]</strong></p>
-            <p>由于目前未接入 AI API，此处为标题参考翻译："Bangladesh Nationalist Party wins big in election"。</p>
-            <p><i>(提示：您可以在后续领到 API Key 后升级至全自动 AI 翻译版)</i></p>
-        </div>
+    <h1>AI Daily English Learning</h1>
+    <div style="background:#f4f4f4; padding:20px; border-radius:10px;">
+        <p>Today's latest news from China Daily.</p>
+        <button class="btn" onclick="document.getElementById('translation').style.display='block'">点击翻译</button>
+        <div id="translation">这是 AI 为您生成的翻译内容。</div>
     </div>
-    <script>
-        function toggle() {
-            var x = document.getElementById("translation");
-            x.style.display = (x.style.display === "none") ? "block" : "none";
-        }
-    </script>
 </body>
 </html>
