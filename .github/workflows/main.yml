@@ -3,29 +3,29 @@ name: Daily News Auto Update
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *' # 北京时间上午8点
+    - cron: '0 0 * * *'
 
 jobs:
   run-daily-task:
     runs-on: ubuntu-latest
     steps:
-      - name: 1. 检出代码
+      - name: 1. Checkout code
         uses: actions/checkout@v3
 
-      - name: 2. 准备 Python 环境
-        uses: setup-python@v4
+      - name: 2. Setup Python
+        uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: 3. 安装依赖
+      - name: 3. Install dependencies
         run: pip install requests beautifulsoup4
 
-      - name: 4. 执行 AI 爬虫脚本
+      - name: 4. Run scraper
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
 
-      - name: 5. 强制提交并推送
+      - name: 5. Force push changes
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
