@@ -2,14 +2,13 @@ import requests
 from bs4 import BeautifulSoup
 import os
 
-# 1. 调取你的 AI 钥匙
+# 1. 从 GitHub 保险柜读取钥匙
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-def ask_gemini(text):
+def ask_ai(text):
     # 这是调用 Gemini AI 的核心逻辑
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
     
-    # 设定指令
     prompt = (
         f"请将以下新闻内容改写为一段适合雅思 8.0 水平的学习材料。要求包含：\n"
         f"1. 一段约 120 词的精简英文文章。\n"
@@ -28,27 +27,30 @@ def ask_gemini(text):
         if 'candidates' in result:
             return result['candidates'][0]['content']['parts'][0]['text']
         else:
-            # 报错的情况：把 AI 返回的详细错误代码显示在网页上，方便我们排查
+            # 报错的情况：把详细回复显示出来
             return f"AI 拒绝了请求。详细回复内容：{result}"
             
     except Exception as e:
         return f"网络连接出错: {e}"
 
 def get_real_news():
-    # 真正去抓取 China Daily 的正文
+    # 抓取 China Daily 的正文
     headers = {'User-Agent': 'Mozilla/5.0'}
-    res = requests.get("https://global.chinadaily.com.cn/world", headers=headers)
-    soup = BeautifulSoup(res.text, 'html.parser')
-    # 找到第一篇文章链接
-    link = "https:" + soup.select_one('.mb10.tw3_01_2 h4 a')['href']
-    # 抓取文章内容
-    art_res = requests.get(link, headers=headers)
-    art_soup = BeautifulSoup(art_res.text, 'html.parser')
-    paragraphs = art_soup.select('#Content p')
-    return " ".join([p.text.strip() for p in paragraphs[:3]])
+    try:
+        res = requests.get("https://global.chinadaily.com.cn/world", headers=headers)
+        soup = BeautifulSoup(res.text, 'html.parser')
+        # 找到第一篇文章链接
+        first_link = "https:" + soup.select_one('.mb10.tw3_01_2 h4 a')['href']
+        # 抓取文章内容
+        art_res = requests.get(first_link, headers=headers)
+        art_soup = BeautifulSoup(art_res.text, 'html.parser')
+        paragraphs = art_soup.select('#Content p')
+        return " ".join([p.text.strip() for p in paragraphs[:3]])
+    except:
+        return "Unable to fetch news content today."
 
 def update_full_html(ai_result):
-    # 构建包含【翻译按钮】的完整网页
+    # 构建完整的 HTML
     html_template = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -68,7 +70,7 @@ def update_full_html(ai_result):
     <h1 style="text-align:center; color:#2d6df6;">IELTS Daily Learning Hub</h1>
     <div class="card">
         <h3>Today's Intensive Reading</h3>
-        <div class="ai-text">{ai_result}</div>
+        <div class="ai-text">{ai_content_placeholder}</div>
         <button class="btn" onclick="toggle()">显示/隐藏 详细分析与翻译</button>
         <div id="analysis">
             <p style="color: #888; font-size: 14px;">💡 AI 实时解析 (Powered by Gemini)</p>
@@ -83,17 +85,20 @@ def update_full_html(ai_result):
 </body>
 </html>
 """
+    # 替换占位符，防止 f-string 冲突
+    final_html = html_template.replace("{ai_content_placeholder}", ai_result)
+    
     with open('index.html', 'w', encoding='utf-8') as f:
-        f.write(html_template)
+        f.write(final_html)
 
 if __name__ == "__main__":
     if API_KEY:
         # 第一步：抓取真实内容
         news_data = get_real_news()
-        # 第二步：获取 AI 处理结果
+        # 第二步：获取 AI 处理结果 (这里统一使用 ask_ai)
         ai_msg = ask_ai(news_data)
         # 第三步：生成最终网页
         update_full_html(ai_msg)
-        print("全功能 AI 网页已生成！")
+        print("全功能 AI 网页已更新！")
     else:
         print("未检测到 API Key，请检查配置。")
