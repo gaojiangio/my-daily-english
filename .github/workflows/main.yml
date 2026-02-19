@@ -1,11 +1,9 @@
 name: Daily News Auto Update
 
 on:
-  schedule:
-    # 这个 cron 表达式代表每天北京时间早上 8:00 自动执行
-    - cron: '0 0 * * *'
   workflow_dispatch:
-    # 这个设置允许我们手动点击按钮来立即触发运行
+  schedule:
+    - cron: '0 0 * * *' # 北京时间上午8点
 
 jobs:
   run-daily-task:
@@ -15,20 +13,22 @@ jobs:
         uses: actions/checkout@v3
 
       - name: 2. 准备 Python 环境
-        uses: actions/setup-python@v4
+        uses: setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: 3. 安装脚本需要的依赖
+      - name: 3. 安装依赖
         run: pip install requests beautifulsoup4
 
-      - name: 4. 执行爬虫脚本
+      - name: 4. 执行 AI 爬虫脚本
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
 
-      - name: 5. 将修改后的 HTML 提交回仓库
+      - name: 5. 强制提交并推送
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
-          git commit -m "Auto update: $(date)" || echo "No changes to commit"
+          git commit -m "AI Update: $(date)" || echo "No changes to commit"
           git push origin main --force
