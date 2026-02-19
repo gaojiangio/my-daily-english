@@ -61,5 +61,9 @@ def update_index_html(title, text):
     print("更新完成！")
 
 if __name__ == "__main__":
-    news_title, news_text = get_news_from_china_daily()
-    update_index_html(news_title, news_text)
+    try:
+        news_title, news_text = get_news_from_china_daily()
+        update_index_html(news_title, news_text)
+        print("本地修改成功。")
+    except Exception as e:
+        print(f"运行出错: {e}")
