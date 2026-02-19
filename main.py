@@ -2,41 +2,52 @@ import requests
 from bs4 import BeautifulSoup
 import os
 
-# 1. 从 GitHub Secrets 读取钥匙
+# 从 GitHub Secrets 中读取 API 密钥
 API_KEY = os.getenv("GEMINI_API_KEY")
 
 def ask_ai(text):
-    # 【核心修正】：将 v1beta 改为 v1，这是最稳定的版本
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+    # 【核心修正】采用 v1beta 路径，这是目前对新账号最友好的接口
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
     
     headers = {'Content-Type': 'application/json'}
     payload = {
-        "contents": [{
-            "parts": [{
-                "text": f"请将以下新闻内容改写为一段适合雅思 8.0 水平的学习材料。要求包含：1. 一段约 120 词的精简英文文章。2. 4个核心词组及其中文释义。3. 刚才那段英文文章的全文中英对照翻译。新闻原文内容：{text}"
-            }]
-        }]
+        "contents": [
+            {
+                "parts": [
+                    {"text": f"请将以下新闻内容改写为一段雅思 8.0 水平的学习材料。要求包含：1. 一段约 120 词的精简英文文章。2. 4个核心词组及其中文释义。3. 刚才那段英文文章的全文中英对照翻译。新闻原文内容：{text}"}
+                ]
+            }
+        ]
     }
     
     try:
         response = requests.post(url, headers=headers, json=payload)
         result = response.json()
         
+        # 严谨的提取逻辑，防止因接口返回空值导致脚本崩溃
         if 'candidates' in result and len(result['candidates']) > 0:
             return result['candidates'][0]['content']['parts'][0]['text']
         else:
-            # 如果还是不行，把错误打印得更清楚一点
-            return f"AI 响应异常。完整信息：{result}"
+            # 提取具体的错误消息
+            error_detail = result.get('error', {}).get('message', '未知原因')
+            return f"AI 暂时无法处理请求。原因：{error_detail}。提示：请检查 API Key 是否已在 Google Cloud 项目中启用 Gemini API。"
     except Exception as e:
-        return f"网络请求失败: {e}"
+        return f"网络连接故障: {str(e)}"
 
 def get_real_news():
+    # 抓取 China Daily 国际频道最新新闻
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         res = requests.get("https://global.chinadaily.com.cn/world", headers=headers)
         soup = BeautifulSoup(res.text, 'html.parser')
-        first_link = "https:" + soup.select_one('.mb10.tw3_01_2 h4 a')['href']
-        art_res = requests.get(first_link, headers=headers)
+        # 提取第一篇文章的链接
+        first_art = soup.select_one('.mb10.tw3_01_2 h4 a')
+        if not first_art:
+            return "No news found today."
+        
+        link = "https:" + first_art['href']
+        # 抓取正文
+        art_res = requests.get(link, headers=headers)
         art_soup = BeautifulSoup(art_res.text, 'html.parser')
         paragraphs = art_soup.select('#Content p')
         return " ".join([p.text.strip() for p in paragraphs[:3]])
@@ -44,7 +55,7 @@ def get_real_news():
         return "Unable to fetch news content today."
 
 def update_full_html(ai_result):
-    # 构造 HTML（直接拼接字符串，避免 f-string 嵌套报错）
+    # 采用最稳妥的字符串拼接，杜绝所有格式化报错
     html_start = """
 <!DOCTYPE html>
 <html lang="en">
@@ -75,12 +86,17 @@ def update_full_html(ai_result):
     <script>
         function toggle() {
             var x = document.getElementById("analysis");
-            x.style.display = (x.style.display === "none" || x.style.display === "") ? "block" : "none";
+            if (x.style.display === "none" || x.style.display === "") {
+                x.style.display = "block";
+            } else {
+                x.style.display = "none";
+            }
         }
     </script>
 </body>
 </html>
 """
+    # 拼接并写入文件
     final_html = html_start + ai_result + html_end
     with open('index.html', 'w', encoding='utf-8') as f:
         f.write(final_html)
@@ -90,6 +106,6 @@ if __name__ == "__main__":
         news_data = get_real_news()
         ai_msg = ask_ai(news_data)
         update_full_html(ai_msg)
-        print("全功能 AI 网页已成功更新！")
+        print("网页已更新，请检查 index.html 内容。")
     else:
-        print("未检测到 API Key，请检查 GitHub Secrets 配置。")
+        print("未检测到 API Key，请检查 GitHub Secrets。")
