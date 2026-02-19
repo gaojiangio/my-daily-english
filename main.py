@@ -5,23 +5,34 @@ import os
 # 1. 调取你的 AI 钥匙
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-def ask_ai(text):
-    # 调用 Gemini AI 进行改写和翻译
+def ask_gemini(text):
+    # 这是调用 Gemini AI 的核心逻辑
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+    
+    # 设定指令
     prompt = (
-        f"请将以下新闻内容改写为一段雅思 8.0 水平的学习材料。要求：\n"
-        f"1. 一段约 120 词的精炼英文文章。\n"
+        f"请将以下新闻内容改写为一段适合雅思 8.0 水平的学习材料。要求包含：\n"
+        f"1. 一段约 120 词的精简英文文章。\n"
         f"2. 4个核心词组及其中文释义。\n"
         f"3. 刚才那段英文文章的全文中英对照翻译。\n"
-        f"新闻原文：{text}"
+        f"新闻原文内容：{text}"
     )
+    
     data = {"contents": [{"parts": [{"text": prompt}]}]}
+    
     try:
         response = requests.post(url, json=data)
-        # 获取 AI 的回复文本
-        return response.json()['candidates'][0]['content']['parts'][0]['text']
+        result = response.json()
+        
+        # 成功拿到内容的情况
+        if 'candidates' in result:
+            return result['candidates'][0]['content']['parts'][0]['text']
+        else:
+            # 报错的情况：把 AI 返回的详细错误代码显示在网页上，方便我们排查
+            return f"AI 拒绝了请求。详细回复内容：{result}"
+            
     except Exception as e:
-        return f"AI 暂时不可用，错误原因: {e}"
+        return f"网络连接出错: {e}"
 
 def get_real_news():
     # 真正去抓取 China Daily 的正文
