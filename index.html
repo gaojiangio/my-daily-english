@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily English Study | AI Editor</title>
+    <title>AI Daily English Study</title>
     <style>
         body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 40px auto; padding: 20px; background: #fcfcfc; line-height: 1.8; }
         .card { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #f0f0f0; }
@@ -17,7 +17,7 @@
     <h1 style="text-align:center; color:#2d6df6;">IELTS Daily Learning Hub</h1>
     <div class="card">
         <h3>Today's Intensive Reading</h3>
-        <div class="ai-text">AI 暂时无法处理请求。原因：models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.。提示：请检查 API Key 是否已在 Google Cloud 项目中启用 Gemini API。</div>
+        <div class="ai-text">AI 暂时不可用。原因：models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.。建议：请确认 Google Cloud 项目中已启用 Generative Language API。</div>
         <button class="btn" onclick="toggle()">显示/隐藏 详细分析与翻译</button>
         <div id="analysis">
             <p style="color: #888; font-size: 14px;">💡 AI 实时解析 (Powered by Gemini)</p>
@@ -26,11 +26,7 @@
     <script>
         function toggle() {
             var x = document.getElementById("analysis");
-            if (x.style.display === "none" || x.style.display === "") {
-                x.style.display = "block";
-            } else {
-                x.style.display = "none";
-            }
+            x.style.display = (x.style.display === "none" || x.style.display === "") ? "block" : "none";
         }
     </script>
 </body>
