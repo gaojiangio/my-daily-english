@@ -1,79 +1,100 @@
 import requests
 from bs4 import BeautifulSoup
 import os
-import time
 
+# 依然读取原来的保险柜名字，但里面请填入 DeepSeek 或备用 API 的 Key
 API_KEY = os.getenv("GEMINI_API_KEY")
 
-def ask_ai(text):
-    # 【多重保险策略】：自动在不同路径和模型之间尝试
-    endpoints = [
-        # 路径 1: 尝试最稳的老模型 gemini-pro (v1 接口)
-        f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={API_KEY}",
-        # 路径 2: 尝试新模型 (v1beta 接口)
-        f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
-    ]
+def ask_deepseek(text):
+    # 【核心改动】：使用标准的 OpenAI/DeepSeek 兼容接口
+    # 如果你用的是 DeepSeek，把下面的 URL 改为 https://api.deepseek.com/chat/completions
+    url = "https://api.deepseek.com/chat/completions"
     
-    payload = {
-        "contents": [{
-            "parts": [{
-                "text": f"请将以下新闻改写为雅思 8.0 水平的学习材料。要求：1.约 150 词的精简英文。2.3个重点动词短语或疑难名词的英文解释。3.全文中英对照翻译。原文内容：{text}"
-            }]
-        }]
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {API_KEY}"
     }
     
-    last_error = ""
-    for url in endpoints:
-        try:
-            response = requests.post(url, json=payload, timeout=30)
-            result = response.json()
-            if 'candidates' in result:
-                return result['candidates'][0]['content']['parts'][0]['text']
-            last_error = str(result)
-            time.sleep(1) # 稍作停顿再试
-        except Exception as e:
-            last_error = str(e)
-            continue
-            
-    return f"AI 线路尝试均失败。最后回复：{last_error}"
+    payload = {
+        "model": "deepseek-chat", # 这里可以根据你的 API 供应商修改模型名
+        "messages": [
+            {"role": "system", "content": "你是一个资深的雅思教研专家。"},
+            {"role": "user", "content": f"将以下新闻改写为 150 词左右的雅思 8.0 难度文章，并带 3 个核心词汇解析和全文中英翻译。原文：{text}"}
+        ],
+        "stream": False
+    }
+    
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        res_json = response.json()
+        return res_json['choices'][0]['message']['content']
+    except Exception as e:
+        return f"AI 线路故障，请检查 API Key 是否为 DeepSeek 类型。错误：{e}"
 
-def get_3_news():
+def fetch_chinadaily_3():
     headers = {'User-Agent': 'Mozilla/5.0'}
     try:
         res = requests.get("https://global.chinadaily.com.cn/world", headers=headers)
         soup = BeautifulSoup(res.text, 'html.parser')
-        links = ["https:" + a['href'] for a in soup.select('.mb10.tw3_01_2 h4 a')[:3]]
-        
-        contents = []
-        for l in links:
-            art = BeautifulSoup(requests.get(l, headers=headers).text, 'html.parser')
-            # 抓取正文前 4 段
-            txt = " ".join([p.text.strip() for p in art.select('#Content p')[:4]])
-            contents.append(txt)
-        return contents
+        # 抓取前 3 篇
+        items = soup.select('.mb10.tw3_01_2 h4 a')[:3]
+        results = []
+        for it in items:
+            link = "https:" + it['href']
+            art = BeautifulSoup(requests.get(link, headers=headers).text, 'html.parser')
+            body = " ".join([p.text.strip() for p in art.select('#Content p')[:4]])
+            results.append({"title": it.text.strip(), "body": body})
+        return results
     except:
         return []
 
-def build_final_page(results):
+def build_web(data_list):
     cards = ""
-    for i, content in enumerate(results):
+    for idx, item in enumerate(data_list):
         cards += f"""
-        <div class="card" style="background: white; border-radius: 20px; padding: 40px; margin-bottom: 40px; box-shadow: 0 15px 35px rgba(0,0,0,0.06); border: 1px solid #eee;">
-            <h2 style="color: #2d6df6; font-family: 'Times New Roman', serif; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">IELTS Reading Part {i+1}</h2>
-            <div style="font-size: 18px; white-space: pre-wrap; line-height: 1.9; color: #333; font-family: 'Georgia', serif;">{content}</div>
-        </div>"""
+        <div class="card">
+            <h2 class="article-title">{idx+1}. {item['title']}</h2>
+            <div class="article-content">{item['processed']}</div>
+            <button class="btn" onclick="toggle({idx})">显示/隐藏 深度翻译</button>
+            <div id="box-{idx}" class="trans-box">
+                <p>AI 雅思教研分析加载完成。若内容未分段，请查看上方 [Translation] 标识。</p>
+            </div>
+        </div>
+        """
 
-    html = f"""<!DOCTYPE html><html><head><meta charset="UTF-8"><title>My Daily IELTS</title></head>
-    <body style="background: #f8fafc; max-width: 900px; margin: 60px auto; padding: 20px;">
-    <h1 style="text-align:center; color:#1a202c; font-size: 32px; margin-bottom: 50px;">Personal IELTS Study Hub</h1>{cards}</body></html>"""
-    
+    full_html = f"""
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>My Daily IELTS English</title>
+    <style>
+        body {{ font-family: 'PingFang SC', 'Microsoft YaHei', serif; background: #f0f2f5; max-width: 800px; margin: 50px auto; padding: 20px; }}
+        .card {{ background: white; border-radius: 16px; padding: 35px; margin-bottom: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.05); }}
+        .article-title {{ color: #1a73e8; border-bottom: 2px solid #e8eaed; padding-bottom: 15px; }}
+        .article-content {{ font-size: 18px; line-height: 1.8; color: #3c4043; white-space: pre-wrap; }}
+        .btn {{ background: #1a73e8; color: white; border: none; padding: 12px 25px; border-radius: 8px; cursor: pointer; margin-top: 20px; }}
+        .trans-box {{ display: none; margin-top: 20px; padding: 20px; background: #f8f9fa; border-left: 4px solid #1a73e8; }}
+    </style>
+</head>
+<body>
+    <h1 style="text-align:center; color:#202124;">IELTS Study Hub (Stable v2.0)</h1>
+    {cards}
+    <script>
+        function toggle(i) {{
+            var el = document.getElementById('box-' + i);
+            el.style.display = (el.style.display === 'none' || el.style.display === '') ? 'block' : 'none';
+        }}
+    </script>
+</body>
+</html>
+"""
     with open('index.html', 'w', encoding='utf-8') as f:
-        f.write(html)
+        f.write(full_html)
 
 if __name__ == "__main__":
-    if not API_KEY:
-        print("Error: API_KEY is missing!")
-    else:
-        articles = get_3_news()
-        ai_results = [ask_ai(a) for a in articles if a]
-        build_final_page(ai_results)
+    articles = fetch_chinadaily_3()
+    for a in articles:
+        # 给每一篇进行 AI 加工
+        a['processed'] = ask_deepseek(a['body'])
+    build_web(articles)
