@@ -1,34 +1,37 @@
 name: Daily News Auto Update
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *' # 每天早上 8 点（北京时间）
+  workflow_dispatch:
 
 jobs:
   run-daily-task:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: 1. Checkout code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: 2. Setup Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: 3. Install dependencies
-        run: pip install requests beautifulsoup4
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4
 
-      - name: 4. Run scraper
+      - name: Run scraper
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
 
       - name: Commit and push changes
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add index.html
-        git commit -m "Update daily news" || exit 0
-        git push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add index.html
+          git commit -m "Update daily news" || exit 0
+          git push
