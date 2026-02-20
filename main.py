@@ -28,25 +28,28 @@ def get_content(url):
         return ""
 
 def ask_ai(text):
-    """针对雅思 8.0 要求的深度改写"""
-    # 采用 v1 版本的最稳路径
-    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+    # 采用 v1beta 路径，这是目前兼容性最强的路径
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
     
-    prompt = (
-        f"Task: Rewrite the following news into an IELTS 8.0 level reading material (approx. 150 words).\n"
-        f"Requirement:\n"
-        f"1. [Article]: Use sophisticated vocabulary and structures.\n"
-        f"2. [Vocabulary]: List 3 key verb phrases or nouns with English explanations.\n"
-        f"3. [Translation]: Provide a contextual Chinese translation.\n\n"
-        f"Source Content: {text}"
-    )
+    payload = {
+        "contents": [{
+            "parts": [{
+                "text": f"请将以下内容改写为一篇雅思 8.0 水平的英语学习短文（约 150 词），带 3 个重点词组解析和全文翻译。原文：{text}"
+            }]
+        }]
+    }
     
-    payload = {"contents": [{"parts": [{"text": prompt}]}]}
     try:
-        response = requests.post(url, json=payload)
-        return response.json()['candidates'][0]['content']['parts'][0]['text']
-    except:
-        return "AI Processing Error. Please check API Key configuration."
+        response = requests.post(url, json=payload, timeout=30)
+        result = response.json()
+        
+        if 'candidates' in result and len(result['candidates']) > 0:
+            return result['candidates'][0]['content']['parts'][0]['text']
+        else:
+            # 【核心修改】：如果出错了，直接把 AI 说的原话吐出来，方便我们排错
+            return f"API 连接成功但未返回内容。服务器回复：{result}"
+    except Exception as e:
+        return f"网络连接故障: {str(e)}"
 
 def build_web(results):
     """生成三卡片结构的网页"""
